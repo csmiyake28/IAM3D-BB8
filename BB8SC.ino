@@ -2,11 +2,7 @@
 
 //TESTING PUSH !
 
-
-
-
 //MAKE THIS WORK!!!!!!
-
 
 // Define pin connections
 // SE pair
@@ -28,17 +24,20 @@ const int dir4 = 12;
 // FlySky pins
 const int ch1Pin = 22; 
 const int ch2Pin = 33; 
+const int ch4Pin = 41;
 const int ch3Pin = 24;
-const int ch4Pin = 35;
 
-int mapRC(unsigned long pulse) {
+
+unsigned long ch1Value, ch2Value, ch3Value, ch4Value;
+
+double mapRC(unsigned long pulse) {
   // Clamp raw pulse to standard RC pulse range (1000us - 2000us)
   long clamped = constrain(pulse, 1000, 2000);
 
   // Map 1000us-2000us to -255 to 255
   int val = map(clamped, 1000, 2000, -255, 255);
 
-  // Deadband to ignore small center stick jitter
+  // Deadband to ignore small center stick jitter 
   if (abs(val) < 15) return 0;
 
   return val;
@@ -61,11 +60,29 @@ void setup() {
 }
 
 void loop() {
-  unsigned long rawCh1 = pulseIn(ch1Pin, HIGH, 25000);
-  unsigned long rawCh3 = pulseIn(ch3Pin, HIGH, 25000);
+  
+  ch1Value = pulseIn(ch1Pin, HIGH, 25000);
+  ch4Value = pulseIn(ch4Pin, HIGH, 25000);
+  ch3Value = pulseIn(ch3Pin, HIGH, 25000);
+  ch2Value = pulseIn(ch2Pin, HIGH, 25000);
+ 
+  
+  //Debugging seeing the rawCH1 & rawCh3
 
-  int xPwm = mapRC(rawCh1); // Horizontal vector (X)
-  int yPwm = mapRC(rawCh3); // Vertical vector (Y)
+  delay(67);
+
+  //Serial.print("Raw Channel 1: "); Serial.print(ch1Value); Serial.print("           Raw Channel 3: "); Serial.print(ch3Value); Serial.println();
+
+
+  double xPwm = mapRC(ch1Value); // Horizontal vector (X)
+  double yPwm = mapRC(ch3Value); // Vertical vector (Y)
+
+
+
+
+  //Serial.print("xPwm : "); Serial.print(xPwm); Serial.print("           yPwm: "); Serial.print(yPwm); Serial.println();
+
+
 
   motors(xPwm, yPwm);
 }
@@ -77,47 +94,65 @@ void motors(int xPwm, int yPwm) {
     analogWrite(pwm2, 0);
     analogWrite(pwm3, 0);
     analogWrite(pwm4, 0);
-    return;
   }
 
-  // 1. Angle calculation (atan2 returns angle in radians: -3.1416 to +3.1416)
+  // 1. Angle calculation (atan2 returns angle in radians)
   double theta = atan2(yPwm, xPwm);
+
+
+  // Convert radians to degrees (-180 to +180)
+  double thetaDegrees = theta * (180.0 / PI);
 
   // 2. Pythagorean theorem: speed = sqrt(x^2 + y^2)
   // hypot(x, y) computes sqrt(x*x + y*y) accurately
   int speed = round(hypot(xPwm, yPwm));
   speed = constrain(speed, 0, 255); // Cap at 255 max PWM
 
-  // 3. Direction selection using explicit radian values
-  // -0.7854 rad = -45 deg,  0.7854 rad = +45 deg,  2.3562 rad = +135 deg
-  if (theta >= -0.7854 && theta < 0.7854) {
+
+  Serial.print("The Speed is: "); Serial.print(speed); Serial.print(" ");
+
+
+
+  // 3. Direction selection using degrees
+  // -45 deg, +45 deg, +135 deg, -135 deg
+  if(speed == 0){
+    Serial.println("AT CENTER NOT SUPPOSED TO MOVE");
+
+  }
+  else if (thetaDegrees >= -45.0 && thetaDegrees < 45.0) {
     // RIGHT: SE & NE forward
+    Serial.println("direction is: right");
     digitalWrite(dir1, LOW);
     digitalWrite(dir2, HIGH);
     digitalWrite(dir3, LOW);
     digitalWrite(dir4, HIGH);
   } 
-  else if (theta >= 0.7854 && theta < 2.3562) {
+  else if (thetaDegrees >= 45.0 && thetaDegrees < 135.0) {
     // FORWARD / UP: Both Norths forward
+    Serial.println("direction is: Forward");
     digitalWrite(dir1, HIGH);
     digitalWrite(dir2, HIGH);
     digitalWrite(dir3, LOW);
     digitalWrite(dir4, LOW);
   } 
-  else if (theta >= -2.3562 && theta < -0.7854) {
+  else if (thetaDegrees >= -135.0 && thetaDegrees < -45.0) {
     // BACKWARD / DOWN: Both Souths forward
+        Serial.println("direction is: Down");
     digitalWrite(dir1, LOW);
     digitalWrite(dir2, LOW);
     digitalWrite(dir3, HIGH);
     digitalWrite(dir4, HIGH);
   } 
-  else {
-    // LEFT: Both Wests forward
+  else if(thetaDegrees >=135 && thetaDegrees <= 225 ){
+    // LEFT: Both Wests forward (Everything past 135 or -135)
+    Serial.println("direction is: Left");
     digitalWrite(dir1, HIGH);
     digitalWrite(dir2, LOW);
     digitalWrite(dir3, HIGH);
     digitalWrite(dir4, LOW);
   }
+  
+  
 
   // Write resultant magnitude as a speed to all wheels 
   analogWrite(pwm1, speed);
