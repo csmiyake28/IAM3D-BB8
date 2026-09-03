@@ -121,7 +121,7 @@ void motors(int xPwm, int yPwm) {
   }
   else if (thetaDegrees >= -45.0 && thetaDegrees < 45.0) {
     // RIGHT: SE & NE forward
-    Serial.println("direction is: right");
+    Serial.println("direction is: Right");
     digitalWrite(dir1, LOW);
     digitalWrite(dir2, HIGH);
     digitalWrite(dir3, LOW);
@@ -143,7 +143,7 @@ void motors(int xPwm, int yPwm) {
     digitalWrite(dir3, HIGH);
     digitalWrite(dir4, HIGH);
   } 
-  else if(thetaDegrees >=135 && thetaDegrees <= 225 ){
+  else{
     // LEFT: Both Wests forward (Everything past 135 or -135)
     Serial.println("direction is: Left");
     digitalWrite(dir1, HIGH);
@@ -151,8 +151,6 @@ void motors(int xPwm, int yPwm) {
     digitalWrite(dir3, HIGH);
     digitalWrite(dir4, LOW);
   }
-  
-  
 
   // Write resultant magnitude as a speed to all wheels 
   analogWrite(pwm1, speed);
