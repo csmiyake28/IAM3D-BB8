@@ -6,20 +6,20 @@
 
 // Define pin connections
 // SE pair
-const int pwm1 = 2;   
-const int dir1 = 3; 
+const int SEin1 = 2;   
+const int SEin2 = 3; 
 
 // SW pair
-const int pwm2 = 5;   
-const int dir2 = 6; 
+const int SWin1 = 5;   
+const int SWin2 = 6; 
 
 // NE pair
-const int pwm3 = 8;   
-const int dir3 = 9; 
+const int NEin1 = 8;   
+const int NEin2 = 9; 
 
 // NW pair
-const int pwm4 = 11;  
-const int dir4 = 12; 
+const int NWin1 = 11;  
+const int NWin2 = 12; 
 
 // FlySky pins
 const int ch1Pin = 22; 
@@ -51,10 +51,10 @@ void setup() {
   pinMode(ch3Pin, INPUT);
   pinMode(ch4Pin, INPUT);
 
-  pinMode(pwm1, OUTPUT);  pinMode(dir1, OUTPUT);
-  pinMode(pwm2, OUTPUT);  pinMode(dir2, OUTPUT);
-  pinMode(pwm3, OUTPUT);  pinMode(dir3, OUTPUT);
-  pinMode(pwm4, OUTPUT);  pinMode(dir4, OUTPUT);
+  pinMode(SEin1, OUTPUT);  pinMode(SEin2, OUTPUT);
+  pinMode(SWin1, OUTPUT);  pinMode(SWin2, OUTPUT);
+  pinMode(NEin1, OUTPUT);  pinMode(NEin2, OUTPUT);
+  pinMode(NWin2, OUTPUT);  pinMode(NWin1, OUTPUT);
 
   Serial.println("--- FlySky FS-iA6 Initialized ---");
 }
@@ -69,7 +69,7 @@ void loop() {
   
   //Debugging seeing the rawCH1 & rawCh3
 
-  delay(67);
+  delay(50);
 
   //Serial.print("Raw Channel 1: "); Serial.print(ch1Value); Serial.print("           Raw Channel 3: "); Serial.print(ch3Value); Serial.println();
 
@@ -88,13 +88,7 @@ void loop() {
 }
 
 void motors(int xPwm, int yPwm) {
-  // Center check
-  if (xPwm == 0 && yPwm == 0) {
-    analogWrite(pwm1, 0);
-    analogWrite(pwm2, 0);
-    analogWrite(pwm3, 0);
-    analogWrite(pwm4, 0);
-  }
+  
 
   // 1. Angle calculation (atan2 returns angle in radians)
   double theta = atan2(yPwm, xPwm);
@@ -115,46 +109,62 @@ void motors(int xPwm, int yPwm) {
 
   // 3. Direction selection using degrees
   // -45 deg, +45 deg, +135 deg, -135 deg
-  if(speed == 0){
+  if(speed < 30){
     Serial.println("AT CENTER NOT SUPPOSED TO MOVE");
-
   }
   else if (thetaDegrees >= -45.0 && thetaDegrees < 45.0) {
     // RIGHT: SE & NE forward
-    Serial.println("direction is: Right");
-    digitalWrite(dir1, LOW);
-    digitalWrite(dir2, HIGH);
-    digitalWrite(dir3, LOW);
-    digitalWrite(dir4, HIGH);
+    Serial.println("direction is: EAST");
+    analogWrite(NWin1, LOW); digitalWrite(NWin2, speed); // NW motors will spin Backward
+    analogWrite(NEin1, speed); digitalWrite(NEin2, LOW); // NE motors will spin forward
+    analogWrite(SWin1, LOW);   digitalWrite(SWin2, speed); // SW motors will spin Backward
+    analogWrite(SEin1, speed);   digitalWrite(SEin2, LOW); //  SE motors will spin Forward
+
+
   } 
   else if (thetaDegrees >= 45.0 && thetaDegrees < 135.0) {
     // FORWARD / UP: Both Norths forward
-    Serial.println("direction is: Forward");
-    digitalWrite(dir1, HIGH);
-    digitalWrite(dir2, HIGH);
-    digitalWrite(dir3, LOW);
-    digitalWrite(dir4, LOW);
+    Serial.println("direction is: NORTH");
+    analogWrite(NWin1, speed); digitalWrite(NWin2, LOW); // NW motors will spin forward
+    analogWrite(NEin1, speed); digitalWrite(NEin2, LOW); // NE motors will spin forward
+    analogWrite(SWin1, LOW);   digitalWrite(SWin2, speed); // SW motors will spin Backward
+    analogWrite(SEin1, LOW);   digitalWrite(SEin2, speed); //  SE motors will spin Backward
+    
+
   } 
   else if (thetaDegrees >= -135.0 && thetaDegrees < -45.0) {
     // BACKWARD / DOWN: Both Souths forward
-        Serial.println("direction is: Down");
-    digitalWrite(dir1, LOW);
-    digitalWrite(dir2, LOW);
-    digitalWrite(dir3, HIGH);
-    digitalWrite(dir4, HIGH);
+    Serial.println("direction is: SOUTH");
+    analogWrite(NWin1, LOW); digitalWrite(NWin2, speed); // NW motors will spin Backward
+    analogWrite(NEin1, LOW); digitalWrite(NEin2, speed); // NE motors will spin Backward
+    analogWrite(SWin1, speed);   digitalWrite(SWin2, LOW); // SW motors will spin Forward
+    analogWrite(SEin1, speed);   digitalWrite(SEin2, LOW); //  SE motors will spin Forward
   } 
   else{
     // LEFT: Both Wests forward (Everything past 135 or -135)
-    Serial.println("direction is: Left");
-    digitalWrite(dir1, HIGH);
-    digitalWrite(dir2, LOW);
-    digitalWrite(dir3, HIGH);
-    digitalWrite(dir4, LOW);
+    Serial.println("direction is: WEST");
+    analogWrite(NWin1, speed); digitalWrite(NWin2, LOW); // NW motors will spin Forward
+    analogWrite(NEin1, LOW); digitalWrite(NEin2, speed); // NE motors will spin Backward
+    analogWrite(SWin1, speed);   digitalWrite(SWin2, LOW); // SW motors will spin Forward
+    analogWrite(SEin1, LOW);   digitalWrite(SEin2, speed); //  SE motors will spin Backward
   }
-
-  // Write resultant magnitude as a speed to all wheels 
-  analogWrite(pwm1, speed);
-  analogWrite(pwm2, speed);
-  analogWrite(pwm3, speed);
-  analogWrite(pwm4, speed);
 }
+
+
+
+
+/* NEEd to fix: 
+
+  1) Fire up Both Dir are correct add SW needs to be CCLK SE needs to CLK
+
+
+  2)Fire Right: NW CCLK NE CCLK SE: CLK SW: CLK 
+
+  3) FIRE Down:  NW: CLK NE: CCLK SW: CLK SE: CCLK
+
+  4) Fire Left: NW: CLK NE: CLK SW: CCLK SE: CLK
+
+
+
+
+*/
